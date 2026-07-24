@@ -86,9 +86,9 @@
             stroke: var(--card-bg); vector-effect: non-scaling-stroke; stroke-width: 0.5px;
             cursor: pointer; transition: fill 0.2s, stroke 0.2s;
         }
-        #koreaMap path:hover { stroke: #333; stroke-width: 2px; filter: brightness(1.1); }
+        #koreaMap path:hover { stroke: #333; stroke-width: 2px; filter: brightness(1.1); z-index: 10;}
 
-        /* 지도 툴팁 (마우스 호버 정보 카드) */
+        /* 지도 툴팁 */
         #mapTooltip {
             position: absolute; background: rgba(255, 255, 255, 0.95);
             border: 1px solid #eee; padding: 12px 16px; border-radius: 12px;
@@ -100,15 +100,8 @@
         .tt-rank { font-size: 0.85rem; color: #777; margin-top: 8px; border-top: 1px dashed #ddd; padding-top: 6px;}
 
         /* 지도 범례 */
-        .map-legend-box {
-            display: flex; flex-direction: column; align-items: center;
-            margin: 10px auto; max-width: 300px;
-        }
-        .legend-bar {
-            width: 100%; height: 12px; border-radius: 6px; margin: 5px 0;
-            background: linear-gradient(to right, var(--map-min), var(--map-max));
-            border: 1px solid #eee;
-        }
+        .map-legend-box { display: flex; flex-direction: column; align-items: center; margin: 10px auto; max-width: 300px; }
+        .legend-bar { width: 100%; height: 12px; border-radius: 6px; margin: 5px 0; background: linear-gradient(to right, var(--map-min), var(--map-max)); border: 1px solid #eee; }
         .legend-labels { width: 100%; display: flex; justify-content: space-between; font-size: 0.85rem; color: var(--text-sub); }
 
         /* 순위 리스트 */
@@ -116,10 +109,7 @@
         .rank-box { flex: 1; min-width: 250px; background: rgba(0,0,0,0.02); padding: 1rem; border-radius: 12px; }
         .rank-box h3 { margin: 0 0 10px 0; font-size: 1rem; color: var(--text-main); }
         .rank-list { list-style: none; padding: 0; margin: 0; }
-        .rank-list li {
-            display: flex; justify-content: space-between; padding: 8px;
-            border-bottom: 1px solid rgba(0,0,0,0.05); cursor: pointer; font-size: 0.95rem;
-        }
+        .rank-list li { display: flex; justify-content: space-between; padding: 8px; border-bottom: 1px solid rgba(0,0,0,0.05); cursor: pointer; font-size: 0.95rem; }
         .rank-list li:hover { background-color: var(--card-bg); border-radius: 6px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); color: var(--accent-hover); font-weight: bold;}
         .rank-list li:last-child { border-bottom: none; }
 
@@ -131,6 +121,18 @@
             color: white; border: none; border-radius: 8px; cursor: pointer;
         }
         button.action-btn:hover { background-color: var(--accent-hover); }
+
+        /* 쌍둥이 배너 */
+        .twin-banner {
+            background-color: var(--accent); color: white; padding: 1rem 1.5rem;
+            border-radius: var(--border-radius); margin-bottom: 1.5rem;
+            display: flex; justify-content: space-between; align-items: center;
+            box-shadow: var(--shadow); cursor: pointer; flex-wrap: wrap; gap: 10px;
+        }
+        .twin-banner:hover { background-color: var(--accent-hover); transform: translateY(-2px); }
+        .twin-text { font-size: 1.05rem; }
+        .twin-text strong { font-weight: 800; font-size: 1.2rem; }
+        .twin-badge { background: rgba(255,255,255,0.2); padding: 4px 8px; border-radius: 6px; font-size: 0.9rem; }
 
         /* 지표 카드 그리드 */
         .metrics-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-bottom: 1.5rem; }
@@ -169,7 +171,6 @@
         <!-- 지도 섹션 -->
         <div class="card" id="map-section">
             <h2>🗺️ 전국에서 우리 동네는?</h2>
-            
             <div class="map-controls">
                 <select id="metricSelect" onchange="updateMap()">
                     <option value="65-100">고령화율 (65세 이상)</option>
@@ -180,7 +181,6 @@
                     <option value="0-0">0세 (신생아) 비율</option>
                     <option value="custom">직접 정하기...</option>
                 </select>
-                
                 <span id="customRangeForm" style="display: none;">
                     <input type="number" id="ageStart" min="0" max="100" value="20" style="width: 70px;"> 세 ~
                     <input type="number" id="ageEnd" min="0" max="100" value="39" style="width: 70px;"> 세
@@ -189,10 +189,7 @@
             </div>
 
             <div class="map-container">
-                <!-- SVG 지도 출력 영역 -->
                 <svg id="koreaMap"></svg>
-                
-                <!-- 툴팁 -->
                 <div id="mapTooltip">
                     <div class="tt-title" id="ttName">지역명</div>
                     <div class="tt-info">총 인구: <b id="ttTotal">0</b>명</div>
@@ -201,7 +198,6 @@
                 </div>
             </div>
 
-            <!-- 범례 -->
             <div class="map-legend-box">
                 <div class="legend-bar"></div>
                 <div class="legend-labels">
@@ -211,7 +207,6 @@
                 </div>
             </div>
 
-            <!-- 순위 리스트 -->
             <div class="rank-container">
                 <div class="rank-box">
                     <h3>🏆 상위 5개 지역</h3>
@@ -237,6 +232,18 @@
             
             <h2 id="resTitle" style="text-align: center; margin: 1rem 0; font-size: 1.6rem;"></h2>
             
+            <!-- 🌟 쌍둥이 지역 배너 🌟 -->
+            <div id="twinBanner" class="twin-banner" style="display: none;">
+                <div class="twin-text">
+                    👯 <strong>쌍둥이 동네: <span id="twinName"></span></strong>
+                    <span style="opacity: 0.9; font-size: 0.9rem; margin-left:5px;">(차트의 점선으로 인구구조를 함께 비교해 보세요!)</span>
+                </div>
+                <div style="display:flex; align-items:center; gap: 10px;">
+                    <span class="twin-badge">일치율: <b id="twinSim"></b>%</span>
+                    <button class="action-btn" style="padding: 6px 12px; font-size: 0.9rem; background: rgba(0,0,0,0.2);" onclick="goToTwin(event)">동네 이동하기 ➔</button>
+                </div>
+            </div>
+
             <!-- 4개 지표 카드 -->
             <div class="metrics-grid">
                 <div class="metric-card">
@@ -277,12 +284,11 @@
         
         let populationData = {};
         let currentMapData = [];
-        let mapPaths = []; // DOM 참조 캐시
+        let mapPaths = [];
 
-        // 테마 설정 시 지도 색상도 자동 업데이트되도록 처리
         function setTheme(themeName) {
             document.body.className = themeName;
-            setTimeout(updateMapColors, 50); // CSS 변수가 적용될 시간 부여
+            setTimeout(updateMapColors, 50);
         }
 
         function parseCSVLine(line) {
@@ -305,7 +311,6 @@
                     fetch(JSON_URL).then(res => res.json())
                 ]);
 
-                // 1. CSV 파싱
                 const text = new TextDecoder('euc-kr').decode(csvRes);
                 const lines = text.trim().split('\n');
                 if (lines.length === 0) throw new Error("CSV 데이터가 비어있습니다.");
@@ -332,14 +337,22 @@
                     if (cols.length < headers.length) continue;
 
                     const cleanRegion = cols[0].replace(/\s*\([^)]*\)$/, '').trim();
+                    
+                    // 쌍둥이 매칭을 위한 1세 단위 카운트 배열 (0~100)
                     const ageCounts = new Array(101).fill(0);
+                    const maleAgeCounts = new Array(101).fill(0);
+                    const femaleAgeCounts = new Array(101).fill(0);
+                    
+                    // 차트용 10세 단위 카운트 배열 (0~10)
                     const maleBins = new Array(11).fill(0);
                     const femaleBins = new Array(11).fill(0);
+                    
                     let maleSum = 0, femaleSum = 0, youthSum = 0, elderlySum = 0;
 
                     maleCols.forEach(col => {
                         let count = parseInt((cols[col.idx] || '0').replace(/,/g, ''), 10) || 0;
                         ageCounts[col.age] += count;
+                        maleAgeCounts[col.age] += count;
                         maleBins[col.age < 100 ? Math.floor(col.age / 10) : 10] += count;
                         maleSum += count;
                         if (col.age <= 14) youthSum += count;
@@ -349,6 +362,7 @@
                     femaleCols.forEach(col => {
                         let count = parseInt((cols[col.idx] || '0').replace(/,/g, ''), 10) || 0;
                         ageCounts[col.age] += count;
+                        femaleAgeCounts[col.age] += count;
                         femaleBins[col.age < 100 ? Math.floor(col.age / 10) : 10] += count;
                         femaleSum += count;
                         if (col.age <= 14) youthSum += count;
@@ -358,7 +372,7 @@
                     populationData[cleanRegion] = {
                         total: maleSum + femaleSum, male: maleSum, female: femaleSum,
                         youth: youthSum, elderly: elderlySum,
-                        ageCounts: ageCounts, maleBins: maleBins, femaleBins: femaleBins
+                        ageCounts, maleAgeCounts, femaleAgeCounts, maleBins, femaleBins
                     };
 
                     const option = document.createElement('option');
@@ -366,21 +380,17 @@
                     datalist.appendChild(option);
                 }
 
-                // 2. JSON 지도 데이터 파싱 및 렌더링
                 renderMap(jsonRes);
-
-                // UI 전환 및 초기 지도 세팅
                 document.getElementById('loading').style.display = 'none';
                 document.getElementById('main-content').style.display = 'block';
-                
-                updateMap(); // 기본 지표(고령화율) 그리기
+                updateMap(); 
 
             } catch (error) {
                 document.getElementById('loading').textContent = '데이터 로딩 실패: ' + error.message;
             }
         }
 
-        // --- 재귀적으로 GeoJSON 좌표 묶음을 SVG Path 명령어로 변환 ---
+        // --- 지도 렌더링 로직 ---
         let minX=Infinity, maxX=-Infinity, minY=Infinity, maxY=-Infinity;
         function coordsToPath(coords) {
             if (typeof coords[0] === 'number') {
@@ -410,13 +420,11 @@
         function renderMap(json) {
             const svg = document.getElementById('koreaMap');
             const regionsMerge = {};
-
             json.sigungu.forEach(sig => {
                 const name = sig.n;
                 if (!regionsMerge[name]) regionsMerge[name] = "";
                 regionsMerge[name] += coordsToPath(sig.p);
             });
-
             svg.setAttribute('viewBox', `${minX} ${minY} ${maxX - minX} ${maxY - minY}`);
 
             const tooltip = document.getElementById('mapTooltip');
@@ -426,13 +434,11 @@
                 path.setAttribute('d', d);
                 path.setAttribute('data-region', name);
                 
-                // 마우스 이벤트 (툴팁)
                 path.addEventListener('mouseenter', () => tooltip.style.display = 'block');
                 path.addEventListener('mouseleave', () => tooltip.style.display = 'none');
                 path.addEventListener('mousemove', (e) => {
                     const data = path._mapData;
                     if (!data) return;
-                    
                     document.getElementById('ttName').textContent = data.region;
                     document.getElementById('ttTotal').textContent = data.total.toLocaleString();
                     document.getElementById('ttRate').textContent = data.rate.toFixed(1);
@@ -440,26 +446,21 @@
 
                     let left = e.pageX + 15;
                     let top = e.pageY + 15;
-                    // 화면 밖으로 나가지 않도록 조정
                     if (left + tooltip.offsetWidth > window.innerWidth) left = e.pageX - tooltip.offsetWidth - 15;
-                    
                     tooltip.style.left = left + 'px';
                     tooltip.style.top = top + 'px';
                 });
 
-                // 클릭 이벤트 (대시보드 검색 및 스크롤)
                 path.addEventListener('click', () => {
                     document.getElementById('regionInput').value = name;
                     searchRegion();
                     document.getElementById('dashboard').scrollIntoView({ behavior: 'smooth', block: 'start' });
                 });
-
                 svg.appendChild(path);
                 mapPaths.push(path);
             }
         }
 
-        // --- 지도 지표 업데이트 로직 ---
         function getMapColors() {
             const style = getComputedStyle(document.body);
             return {
@@ -470,17 +471,13 @@
 
         function interpolateColor(color1, color2, factor) {
             const hex = (c) => {
-                // 단순화된 색상 파서 (rgb, hex 지원)
                 let ctx = document.createElement('canvas').getContext('2d');
                 ctx.fillStyle = c;
                 let computed = ctx.fillStyle;
-                if (computed.startsWith('#')) {
-                    return [parseInt(computed.slice(1,3),16), parseInt(computed.slice(3,5),16), parseInt(computed.slice(5,7),16)];
-                }
+                if (computed.startsWith('#')) return [parseInt(computed.slice(1,3),16), parseInt(computed.slice(3,5),16), parseInt(computed.slice(5,7),16)];
                 return [255,255,255];
             };
-            const c1 = hex(color1);
-            const c2 = hex(color2);
+            const c1 = hex(color1); const c2 = hex(color2);
             const r = Math.round(c1[0] + factor * (c2[0] - c1[0]));
             const g = Math.round(c1[1] + factor * (c2[1] - c1[1]));
             const b = Math.round(c1[2] + factor * (c2[2] - c1[2]));
@@ -490,7 +487,6 @@
         function updateMap() {
             const val = document.getElementById('metricSelect').value;
             let start, end;
-            
             if (val === 'custom') {
                 document.getElementById('customRangeForm').style.display = 'inline-block';
                 start = parseInt(document.getElementById('ageStart').value) || 0;
@@ -501,7 +497,6 @@
                 [start, end] = val.split('-').map(Number);
             }
 
-            // 지표 계산
             let result = [];
             for (const [region, data] of Object.entries(populationData)) {
                 if (data.total === 0) continue;
@@ -513,26 +508,22 @@
             result.sort((a, b) => b.rate - a.rate);
             result.forEach((item, idx) => item.rank = idx + 1);
             currentMapData = result;
-
             updateMapColors();
             updateRankLists();
         }
 
         function updateMapColors() {
             if (currentMapData.length === 0) return;
-            
             const maxRate = Math.max(...currentMapData.map(d => d.rate));
             const minRate = Math.min(...currentMapData.map(d => d.rate));
-            const rateMap = {};
-            currentMapData.forEach(d => rateMap[d.region] = d);
-
+            const rateMap = {}; currentMapData.forEach(d => rateMap[d.region] = d);
             const colors = getMapColors();
 
             mapPaths.forEach(path => {
                 const name = path.getAttribute('data-region');
                 const data = rateMap[name];
                 if (data) {
-                    const factor = maxRate === minRate ? 0 : Math.pow((data.rate - minRate) / (maxRate - minRate), 0.8); // 0.8은 시각적 대비를 위한 보정값
+                    const factor = maxRate === minRate ? 0 : Math.pow((data.rate - minRate) / (maxRate - minRate), 0.8);
                     path.style.fill = interpolateColor(colors.min, colors.max, factor);
                     path._mapData = data;
                 } else {
@@ -547,9 +538,7 @@
 
         function updateRankLists() {
             if (currentMapData.length === 0) return;
-            
-            const topList = document.getElementById('topList');
-            const bottomList = document.getElementById('bottomList');
+            const topList = document.getElementById('topList'); const bottomList = document.getElementById('bottomList');
             topList.innerHTML = ''; bottomList.innerHTML = '';
 
             const createListItem = (item) => {
@@ -562,22 +551,80 @@
                 };
                 return li;
             };
-
             for (let i = 0; i < Math.min(5, currentMapData.length); i++) topList.appendChild(createListItem(currentMapData[i]));
-            
-            // 하위 5개는 역순으로
             const bottomData = currentMapData.slice(-5).reverse();
             for (let i = 0; i < bottomData.length; i++) bottomList.appendChild(createListItem(bottomData[i]));
         }
 
-        // --- 대시보드 및 피라미드 차트 ---
-        function renderPyramidChart(maleBins, femaleBins) {
+        // --- 🌟 쌍둥이 지역 찾기 알고리즘 🌟 ---
+        function findTwinRegion(targetName) {
+            const target = populationData[targetName];
+            if (!target || target.total === 0) return null;
+
+            let minDiff = Infinity;
+            let bestMatch = null;
+
+            for (const [name, data] of Object.entries(populationData)) {
+                if (name === targetName || data.total === 0) continue;
+                
+                let diff = 0;
+                // 1세 단위로 남녀 인구 비율의 차이를 누적 (분포가 같을수록 diff는 0에 수렴)
+                for (let i = 0; i <= 100; i++) {
+                    diff += Math.abs((target.maleAgeCounts[i] / target.total) - (data.maleAgeCounts[i] / data.total));
+                    diff += Math.abs((target.femaleAgeCounts[i] / target.total) - (data.femaleAgeCounts[i] / data.total));
+                }
+
+                if (diff < minDiff) {
+                    minDiff = diff;
+                    bestMatch = name;
+                }
+            }
+            // 최대 차이는 2이므로, 백분율로 환산
+            const similarity = ((1 - (minDiff / 2)) * 100).toFixed(2);
+            return { name: bestMatch, similarity: similarity };
+        }
+
+        // --- 차트 및 검색 렌더링 ---
+        function renderPyramidChart(targetData, twinData) {
             const ageGroups = ['0~9세', '10~19세', '20~29세', '30~39세', '40~49세', '50~59세', '60~69세', '70~79세', '80~89세', '90~99세', '100세 이상'];
-            
-            const maleValues = maleBins.map(v => -v);
-            const femaleValues = femaleBins.map(v => v);
-            const maxVal = Math.max(...maleBins, ...femaleBins) || 1;
-            
+            const traces = [];
+
+            // 1. 기준 지역 바 차트
+            traces.push({
+                x: targetData.maleBins.map(v => -v), y: ageGroups, name: '남성', type: 'bar', orientation: 'h',
+                marker: { color: '#4C8BF5', opacity: 0.85 },
+                hovertemplate: '남성 (%{y}): %{customdata}명<extra></extra>',
+                customdata: targetData.maleBins.map(v => v.toLocaleString())
+            });
+            traces.push({
+                x: targetData.femaleBins.map(v => v), y: ageGroups, name: '여성', type: 'bar', orientation: 'h',
+                marker: { color: '#FF6B81', opacity: 0.85 },
+                hovertemplate: '여성 (%{y}): %{customdata}명<extra></extra>',
+                customdata: targetData.femaleBins.map(v => v.toLocaleString())
+            });
+
+            // 2. 쌍둥이 지역 점선 오버레이 (기준 지역 총인구 규모로 비율 환산)
+            if (twinData) {
+                traces.push({
+                    x: twinData.maleBins.map(v => -(v / twinData.total) * targetData.total),
+                    y: ageGroups, name: `쌍둥이 (남)`, type: 'scatter', mode: 'lines+markers',
+                    line: { color: '#2c3e50', width: 2, dash: 'dot' },
+                    marker: { size: 6 },
+                    hovertemplate: `${twinData.name} 남성 (%{y}): %{customdata}명 (실제 인구)<extra></extra>`,
+                    customdata: twinData.maleBins.map(v => v.toLocaleString())
+                });
+                traces.push({
+                    x: twinData.femaleBins.map(v => (v / twinData.total) * targetData.total),
+                    y: ageGroups, name: `쌍둥이 (여)`, type: 'scatter', mode: 'lines+markers',
+                    line: { color: '#8e44ad', width: 2, dash: 'dot' },
+                    marker: { size: 6 },
+                    hovertemplate: `${twinData.name} 여성 (%{y}): %{customdata}명 (실제 인구)<extra></extra>`,
+                    customdata: twinData.femaleBins.map(v => v.toLocaleString())
+                });
+            }
+
+            // x축 라벨 생성을 위한 최댓값 계산 (절댓값)
+            let maxVal = Math.max(...targetData.maleBins, ...targetData.femaleBins) || 1;
             let step = Math.pow(10, Math.floor(Math.log10(maxVal)));
             if (step < 1) step = 1;
             while (maxVal / step > 4) step *= 2;
@@ -590,29 +637,19 @@
                 tickTexts.push(Math.abs(i * step).toLocaleString());
             }
 
-            const traceMale = {
-                x: maleValues, y: ageGroups, name: '남성', type: 'bar', orientation: 'h',
-                marker: { color: '#4C8BF5' },
-                hovertemplate: '남성 (%{y}): %{customdata}명<extra></extra>',
-                customdata: maleBins.map(v => v.toLocaleString())
-            };
-            const traceFemale = {
-                x: femaleValues, y: ageGroups, name: '여성', type: 'bar', orientation: 'h',
-                marker: { color: '#FF6B81' },
-                hovertemplate: '여성 (%{y}): %{customdata}명<extra></extra>',
-                customdata: femaleBins.map(v => v.toLocaleString())
-            };
-
             const layout = {
                 barmode: 'relative', paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)',
                 font: { color: getComputedStyle(document.body).getPropertyValue('--text-main') },
                 xaxis: { tickvals: ticks, ticktext: tickTexts, zeroline: true, zerolinecolor: '#ccc', gridcolor: 'rgba(0,0,0,0.05)' },
                 yaxis: { automargin: true },
                 legend: { x: 0.5, y: 1.15, xanchor: 'center', orientation: 'h' },
-                margin: { l: 70, r: 20, t: 30, b: 40 }
+                margin: { l: 70, r: 20, t: 30, b: 40 },
+                hovermode: 'closest'
             };
-            Plotly.newPlot('pyramidChart', [traceMale, traceFemale], layout, { displayModeBar: false, responsive: true });
+            Plotly.newPlot('pyramidChart', traces, layout, { displayModeBar: false, responsive: true });
         }
+
+        let currentTwinName = "";
 
         function searchRegion() {
             const inputVal = document.getElementById('regionInput').value.trim();
@@ -636,14 +673,39 @@
                 const elElderly = document.getElementById('valElderly');
                 elElderly.textContent = `${elderlyRate}%`;
                 elElderly.style.color = elderlyRate > 20 ? '#ff4757' : 'var(--text-main)';
-
                 document.getElementById('valYouth').textContent = `${youthRate}%`;
                 
+                // 쌍둥이 찾기
+                const twin = findTwinRegion(inputVal);
+                let twinData = null;
+                const twinBanner = document.getElementById('twinBanner');
+
+                if (twin) {
+                    currentTwinName = twin.name;
+                    document.getElementById('twinName').textContent = twin.name;
+                    document.getElementById('twinSim').textContent = twin.similarity;
+                    twinBanner.style.display = 'flex';
+                    
+                    twinData = populationData[twin.name];
+                    twinData.name = twin.name; // 차트용 라벨 전달
+                } else {
+                    twinBanner.style.display = 'none';
+                }
+                
                 dash.style.display = 'block';
-                renderPyramidChart(data.maleBins, data.femaleBins);
+                renderPyramidChart(data, twinData);
             } else {
                 msgDiv.textContent = '⚠️ 일치하는 지역이 없습니다. 정확한 지역명을 입력해 주세요.';
                 dash.style.display = 'none';
+            }
+        }
+
+        // 동네 이동하기 버튼 클릭 시
+        function goToTwin(e) {
+            e.stopPropagation();
+            if (currentTwinName) {
+                document.getElementById('regionInput').value = currentTwinName;
+                searchRegion();
             }
         }
 
@@ -656,11 +718,10 @@
             }
         });
 
-        // 테마가 바뀔 때 차트 글씨색도 리렌더링
+        // 테마가 바뀔 때 차트 글씨색 재적용
         const observer = new MutationObserver(() => {
             if(document.getElementById('dashboard').style.display === 'block') {
-                const data = populationData[document.getElementById('regionInput').value];
-                if(data) renderPyramidChart(data.maleBins, data.femaleBins);
+                searchRegion(); // 데이터가 있으니 그대로 다시 렌더링
             }
         });
         observer.observe(document.body, { attributes: true, attributeFilter: ['class'] });
