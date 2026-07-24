@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>지역별 인구 및 인구 피라미드</title>
+    <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+    <style>
+        body {
+            font-family: 'Malgun Gothic', sans-serif;
+            max-width: 800px;
+            margin: 2rem auto;
+            padding: 1rem;
+            color: #333;
+        }
+        .search-container {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 1rem;
+        }
+        input {
+            flex-grow: 1;
+            padding: 10px;
+            font-size: 1rem;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 1rem;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .result-card {
+            margin-top: 1.5rem;
+            padding: 1.5rem;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background-color: #f8f9fa;
+        }
+        .result-card h2 {
+            margin-top: 0;
+            color: #0056b3;
+        }
+        .result-item {
+            font-size: 1.1rem;
+            margin: 8px 0;
+        }
+        .message {
+            margin-top: 1rem;
+            color: #d9534f;
+            font-weight: bold;
+        }
+        #loading {
+            color: #5bc0de;
+            font-weight: bold;
+        }
+        #pyramidChart {
+            margin-top: 1.5rem;
+            width: 100%;
+            height: 450px;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>🇰🇷 지역별 인구 & 인구 피라미드</h1>
+    <p id="loading">데이터를 불러오고 분석하는 중입니다. 잠시만 기다려주세요...</p>
+    
+    <div id="main-content" style="display: none;">
+        <div class="search-container">
+            <input type="text" id="regionInput" list="regionList" placeholder="지역명 입력 (예: 서울특별시 종로구)">
+            <datalist id="regionList"></datalist>
+            <button onclick="searchRegion()">검색</button>
+        </div>
+        <div id="msg" class="message"></div>
+
+        <div id="resultBox" class="result-card" style="display: none;">
+            <h2 id="resTitle"></h2>
+            <div class="result-item">🧑‍🤝‍🧑 <strong>총 인구:</strong> <span id="resTotal"></span>명</div>
+            <div class="result-item">👨 <strong>남성:</strong> <span id="resMale"></span>명</div>
+            <div class="result-item">👩 <strong>여성:</strong> <span id="resFemale"></span>명</div>
+            
+            <div id="pyramidChart"></div>
+        </div>
+    </div>
+
+    <script>
+        const CSV_URL = 'https://raw.githubusercontent.com/greatsong/modudata/main/data/population_latest.csv';
+        let populationData = {}; // 파싱된 데이터를 담을 객체
+
+        // 1. CSV 파서 (큰따옴표 내부 콤마 구별)
+        function parseCSVLine(line) {
+            let cols = [];
+            let inQuotes = false;
+            let val = '';
+            for (let i = 0; i < line.length; i++) {
+                let char = line[i];
+                if (char === '"') {
+                    inQuotes = !inQuotes;
+                } else if (char === ',' && !inQuotes) {
+                    cols.push(val.trim());
+                    val = '';
+                } else {
+                    val += char;
+                }
+            }
+            cols.push(val.trim());
+            return cols;
+        }
+
+        // 2. 데이터 가져오기 및 초기화
+        async function init() {
+            try {
+                const response = await fetch(CSV_URL);
+                const buffer = await response.arrayBuffer();
+                const text = new TextDecoder('euc-kr').decode(buffer);
+                
+                const lines = text.trim().split('\n');
+                if (lines.length === 0) throw new Error("데이터가 비어있습니다.");
+
+                const headers = parseCSVLine(lines[0]);
+
+                let maleAgeCols = [];   // { idx, age }
+                let femaleAgeCols = []; // { idx, age }
+
+                // 남/여 0~100세이상 컬럼 인덱스 추출
+                headers.forEach((h, idx) => {
+                    if (h.includes('_남_')) {
+                        let m = h.match(/_남_(\d+)세/);
+                        if (m) {
+                            maleAgeCols.push({ idx, age: parseInt(m[1], 10) });
+                        } else if (h.includes('100세')) {
+                            maleAgeCols.push({ idx, age: 100 });
+                        }
+                    } else if (h.includes('_여_')) {
+                        let m = h.match(/_여_(\d+)세/);
+                        if (m) {
+                            femaleAgeCols.push({ idx, age: parseInt(m[1], 10) });
+                        } else if (h.includes('100세')) {
+                            femaleAgeCols.push({ idx, age: 100 });
+                        }
+                    }
+                });
+
+                const datalist = document.getElementById('regionList');
+
+                // 데이터 수집 및 10세 단위 파싱
+                for (let i = 1; i < lines.length; i++) {
+                    const line = lines[i];
+                    if (!line.trim()) continue;
+
+                    const cols = parseCSVLine(line);
+                    if (cols.length < headers.length) continue;
+
+                    // 행정구역 코드 제거
+                    const rawRegion = cols[0];
+                    const cleanRegion = rawRegion.replace(/\s*\([^)]*\)$/, '').trim();
+
+                    // 10세 단위 구간 배열 (0~9, 10~19, ..., 90~99, 100세 이상 -> 총 11개)
+                    const maleBins = new Array(11).fill(0);
+                    const femaleBins = new Array(11).fill(0);
+
+                    maleAgeCols.forEach(col => {
+                        let count = parseInt((cols[col.idx] || '0').replace(/,/g, ''), 10) || 0;
+                        let binIdx = col.age < 100 ? Math.floor(col.age / 10) : 10;
+                        maleBins[binIdx] += count;
+                    });
+
+                    femaleAgeCols.forEach(col => {
+                        let count = parseInt((cols[col.idx] || '0').replace(/,/g, ''), 10) || 0;
+                        let binIdx = col.age < 100 ? Math.floor(col.age / 10) : 10;
+                        femaleBins[binIdx] += count;
+                    });
+
+                    const maleSum = maleBins.reduce((a, b) => a + b, 0);
+                    const femaleSum = femaleBins.reduce((a, b) => a + b, 0);
+
+                    populationData[cleanRegion] = {
+                        total: maleSum + femaleSum,
+                        male: maleSum,
+                        female: femaleSum,
+                        maleBins: maleBins,
+                        femaleBins: femaleBins
+                    };
+
+                    const option = document.createElement('option');
+                    option.value = cleanRegion;
+                    datalist.appendChild(option);
+                }
+
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('main-content').style.display = 'block';
+
+            } catch (error) {
+                document.getElementById('loading').textContent = '데이터를 불러오는 데 실패했습니다: ' + error.message;
+                document.getElementById('loading').style.color = 'red';
+            }
+        }
+
+        // 3. Plotly 피라미드 차트 그리기
+        function renderPyramidChart(regionName, maleBins, femaleBins) {
+            const ageGroups = ['0~9세', '10~19세', '20~29세', '30~39세', '40~49세', '50~59세', '60~69세', '70~79세', '80~89세', '90~99세', '100세 이상'];
+            
+            // 남성은 음수로 변환하여 왼쪽에 표시
+            const maleValues = maleBins.map(v => -v);
+            const femaleValues = femaleBins.map(v => v);
+
+            // x축 눈금 절댓값 표기를 위한 동적 스텝 계산
+            const maxVal = Math.max(...maleBins, ...femaleBins) || 1;
+            let step = Math.pow(10, Math.floor(Math.log10(maxVal)));
+            if (step < 1) step = 1;
+            while (maxVal / step > 4) step *= 2;
+            while (maxVal / step < 2 && step > 1) step /= 2;
+
+            const numSteps = Math.ceil(maxVal / step);
+            const ticks = [];
+            const tickTexts = [];
+
+            for (let i = -numSteps; i <= numSteps; i++) {
+                const val = i * step;
+                ticks.push(val);
+                tickTexts.push(Math.abs(val).toLocaleString());
+            }
+
+            const traceMale = {
+                x: maleValues,
+                y: ageGroups,
+                name: '남성',
+                type: 'bar',
+                orientation: 'h',
+                marker: { color: '#4C8BF5' },
+                hovertemplate: '남성 (%{y}): %{customdata}명<extra></extra>',
+                customdata: maleBins.map(v => v.toLocaleString())
+            };
+
+            const traceFemale = {
+                x: femaleValues,
+                y: ageGroups,
+                name: '여성',
+                type: 'bar',
+                orientation: 'h',
+                marker: { color: '#FF6B81' },
+                hovertemplate: '여성 (%{y}): %{customdata}명<extra></extra>',
+                customdata: femaleBins.map(v => v.toLocaleString())
+            };
+
+            const layout = {
+                title: {
+                    text: `📊 ${regionName} 연령별 인구 피라미드`,
+                    font: { size: 16 }
+                },
+                barmode: 'relative',
+                paper_bgcolor: 'rgba(0,0,0,0)',
+                plot_bgcolor: 'rgba(0,0,0,0)',
+                xaxis: {
+                    tickvals: ticks,
+                    ticktext: tickTexts,
+                    title: '인구수 (명)',
+                    zeroline: true,
+                    zerolinecolor: '#ddd'
+                },
+                yaxis: {
+                    title: '연령대',
+                    automargin: true
+                },
+                legend: {
+                    x: 0.8,
+                    y: 1.15,
+                    orientation: 'h'
+                },
+                margin: { l: 80, r: 30, t: 60, b: 50 }
+            };
+
+            const config = {
+                displayModeBar: false,
+                responsive: true
+            };
+
+            Plotly.newPlot('pyramidChart', [traceMale, traceFemale], layout, config);
+        }
+
+        // 4. 검색 실행
+        function searchRegion() {
+            const inputVal = document.getElementById('regionInput').value.trim();
+            const msgDiv = document.getElementById('msg');
+            const resultBox = document.getElementById('resultBox');
+
+            if (!inputVal) return;
+
+            const data = populationData[inputVal];
+
+            if (data) {
+                msgDiv.textContent = '';
+                document.getElementById('resTitle').textContent = inputVal;
+                document.getElementById('resTotal').textContent = data.total.toLocaleString();
+                document.getElementById('resMale').textContent = data.male.toLocaleString();
+                document.getElementById('resFemale').textContent = data.female.toLocaleString();
+                
+                resultBox.style.display = 'block';
+
+                // 차트 렌더링
+                renderPyramidChart(inputVal, data.maleBins, data.femaleBins);
+            } else {
+                msgDiv.textContent = '⚠️ 일치하는 지역이 없습니다. 자동완성 목록에서 선택하거나 정확한 지역명을 입력해 주세요.';
+                resultBox.style.display = 'none';
+            }
+        }
+
+        // 엔터키 검색 이벤트
+        document.getElementById('regionInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                searchRegion();
+            }
+        });
+
+        // 스크립트 실행
+        init();
+    </script>
+</body>
+</html>
